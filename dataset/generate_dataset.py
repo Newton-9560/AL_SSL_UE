@@ -41,6 +41,7 @@ def parse_args():
     
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
+    print("Working on model: ", model_path_dict[args.model], " Dataset: ", args.dataset)
     print(f"Using GPU {args.gpu_id}")
     return args
 
@@ -89,10 +90,8 @@ def generate_result(dataset, ue_model, ue_methods):
         data_point['inputs'] = q
         data_point['target_texts'] = a
         data_point['answer'] = output.generation_text
-        print('', output.generation_text)
+        print('Output: ', output.generation_text)
         result.append(data_point)
-        if i > 3:
-            break
     return result
 
 def main():

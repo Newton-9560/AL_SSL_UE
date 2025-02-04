@@ -27,6 +27,11 @@ class LLMs:
             model.generation_config.eos_token_id = 50118
             self.model = model
             self.tokenizer = tokenizer
+        elif 'Qwen' in self.model_name:
+            model = AutoModelForCausalLM.from_pretrained(self.model_name, device_map=self.device, torch_dtype=torch.float16)
+            tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self.model = model
+            self.tokenizer = tokenizer
             
     def get_model(self):
         return self.model
