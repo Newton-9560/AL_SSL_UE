@@ -19,7 +19,7 @@ model_path_dict = {
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='opt',
+    parser.add_argument('--model', type=str, default='llama3',
                         choices=['llama3', 'opt', 'qwen'],
                         help='Model name to use for generation')
     parser.add_argument('--dataset', type=str, default='sciq',
@@ -92,6 +92,8 @@ def generate_result(dataset, ue_model, ue_methods):
         data_point['answer'] = output.generation_text
         print('Output: ', output.generation_text)
         result.append(data_point)
+        if i  == 3:
+            break
     return result
 
 def main():
