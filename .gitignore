@@ -1,0 +1,41 @@
+# 忽略所有 .pkl 文件（Python 生成的 pickle 文件）
+*.pkl
+
+checkpoints/
+
+data/
+**/data/
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+.ipynb_checkpoints/
+
+venv/
+.env/
+*.venv
+*.env
+
+*.log
+logs/
+
+*.local
+*.vscode/
+.idea/
+*.iml
+
+Pipfile
+Pipfile.lock
+poetry.lock
+
+**/.ipynb_checkpoints/
+
+
+*.sqlite3
+*.db
+*.pdb
+
+.DS_Store  # macOS
+Thumbs.db  # Windows
