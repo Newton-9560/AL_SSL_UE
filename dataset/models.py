@@ -18,6 +18,7 @@ class LLMs:
             tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             model.config.pad_token_id = 128001
             model.generation_config.pad_token_id = 128001
+            tokenizer.pad_token = tokenizer.eos_token
             self.model = model
             self.tokenizer = tokenizer
         elif 'opt' in self.model_name:

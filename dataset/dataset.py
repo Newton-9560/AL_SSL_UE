@@ -3,34 +3,21 @@ from datasets import load_dataset
 
 class TriviaQA:
     def __init__(self, batch_size: int, prompt_template: str, test=False):
-        dataset_name = ("trivia_qa", "rc.nocontext")
-        self.dataset = Dataset.load(
-            dataset_name,
-            'questions', 'answers',
-            batch_size=batch_size,
-            prompt=prompt_template,
-            split='train'
-        ) if test is not True else Dataset.load(
-            dataset_name,
-            'questions', 'answers',
-            batch_size=batch_size,
-            prompt=prompt_template,
-            split='test'
-        )
-
+        tqa = load_dataset("trivia_qa", "rc.nocontext")
+        self.dataset = tqa["train"] if test is not True else tqa["test"]
+        self.prompt_template = prompt_template
+        self.batch_size = batch_size
+        
     def __len__(self):
         return len(self.dataset)
     
-    def subsample(self, num_samples: int, seed=42):
-        self.dataset.subsample(num_samples, seed=seed)
-        
-    def split(self, num_splits: int, serial_id: int):
-        split_size = len(self.dataset) // num_splits
-        self.dataset = self.dataset[serial_id * split_size:(serial_id + 1) * split_size]
+    def subsample(self, sample_idx: list[int], seed=42):
+        self.dataset = self.dataset.select(sample_idx)
         
     def __iter__(self):
-        for input, answer in self.dataset:
-            yield input[0], answer[0]
+        for data in self.dataset:
+            prompt = self.prompt_template.format(question=data["question"])
+            yield prompt, data["answer"]['normalized_aliases']
     
 class CoQA:
     def __init__(self, batch_size: int, prompt_template: str, test=False):

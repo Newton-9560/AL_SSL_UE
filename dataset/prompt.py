@@ -11,7 +11,7 @@ PROMPT_TEMPLATES = {
         "trivia_qa": (
             "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
             "Answer the question concisely. (less than 5 words)\n"
-            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: {answer}"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
         ),
         "sciq": (
             "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
