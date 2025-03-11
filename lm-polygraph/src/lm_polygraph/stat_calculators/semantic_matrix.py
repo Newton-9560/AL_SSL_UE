@@ -97,6 +97,8 @@ class SemanticMatrixCalculator(StatCalculator):
                 ).to(device)
                 logits = deberta.deberta(**encoded).logits.detach().to(device)
                 probs.append(softmax(logits).cpu().detach())
+                del encoded, logits
+                torch.cuda.empty_cache()
             probs = torch.cat(probs, dim=0)
 
             entail_probs = probs[:, ent_id]

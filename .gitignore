@@ -1,8 +1,7 @@
-# 忽略所有 .pkl 文件（Python 生成的 pickle 文件）
 *.pkl
 
 checkpoints/
-
+cache/
 data/
 **/data/
 
@@ -10,7 +9,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
+debug.ipynb
 .ipynb_checkpoints/
 
 venv/

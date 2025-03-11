@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer, util
 import re, string
 import numpy as np
 import torch
+import os
 
 def fix_seed(seed=42):
     seed = 42
@@ -36,4 +37,3 @@ def normalize_text(s: str) -> str:
     s = "".join(ch for ch in s if ch not in string.punctuation)
     s = re.sub(r"\s+", " ", s)
     return s
-

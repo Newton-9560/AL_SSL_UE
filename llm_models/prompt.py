@@ -38,7 +38,7 @@ PROMPT_TEMPLATES = {
         "coqa": (
             "<|im_start|>user\n"
             "Context: {story}\n"
-            "Answer the question concisely. (less than 5 words)\n"
+            "Answer the question in eight words or less.\n"
             "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
         ),
         "trivia_qa": (
@@ -48,8 +48,23 @@ PROMPT_TEMPLATES = {
         ),
         "sciq": (
             "<|im_start|>user\n"
-            "Answer the question concisely. (less than 5 words)\n"
+            "Answer the question in five words or less.\n"
             "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
+        )
+    },
+    "meta-llama/Llama-2-13b-chat-hf":{
+        "trivia_qa":(
+            "[INST] Answer the question in five words or less.\n"
+            "Q: {question}\nA: "
+        ),
+        "sciq":(
+            "[INST] Answer the question in five words or less.\n"
+            "Q: {question}\nA: "
+        ),
+        "coqa":(
+            "[INST] Answer the question concisely (less than 8 words).\n"
+            "Context: {story}\n"
+            "Q: {question}\nA: "
         )
     }
 }

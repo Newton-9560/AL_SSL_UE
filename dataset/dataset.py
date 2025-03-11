@@ -59,7 +59,7 @@ class SciQ:
     
     
 if __name__ == "__main__":
-    from prompt import get_prompt_template
+    from llm_models.prompt import get_prompt_template
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from lm_polygraph.utils.model import WhiteboxModel
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     tqa = TriviaQA(batch_size=1, prompt_template=get_prompt_template(model_name, "trivia_qa"))
     sciq = SciQ(batch_size=1, prompt_template=get_prompt_template(model_name, "sciq"))
     coqa = CoQA(batch_size=1, prompt_template=get_prompt_template(model_name, "coqa"))
-    from models import LLMs
+    from llm_models.models import LLMs
     LLM = LLMs(model_name)
     from lm_polygraph.utils.manager import estimate_uncertainty
     ue_model = WhiteboxModel(LLM.get_model(), LLM.get_tokenizer())

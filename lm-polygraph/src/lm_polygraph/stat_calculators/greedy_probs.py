@@ -178,7 +178,7 @@ class GreedyProbsCalculator(StatCalculator):
 
         if model.model_type == "CausalLM":
             embeddings_dict = {
-                "embeddings_decoder": embeddings_decoder.cpu().detach().numpy(),
+                "embeddings_decoder": embeddings_decoder.cpu().detach().to(torch.float16).numpy(),
             }
         elif model.model_type == "Seq2SeqLM":
             embeddings_dict = {
