@@ -5,6 +5,7 @@ from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 
 from hidden_state.dataset import HiddenStateDataset
+from semi_supervised.utils import calculate_alignment_score, weak_augmentation, strong_augmentation
 
 class Trainer:
     def __init__(self, model_name='mlp', dim=4096):
@@ -34,6 +35,121 @@ class Trainer:
                 
         return best
     
+    def train_semi_supervised(self, labeled_dataset, unlabeled_dataset, validation_dataset, config):
+        best = {'auroc': 0}
+        # 1. Active learning round
+        for _ in range(config.rounds):
+            # 2. Load the best checkpoint from previous step, or the optimizer
+            # 3. Add new labeled samples according to ACTIVE LEARNING FUNCTION
+            for _ in range(config.epochs):
+                # 3. Assign Peusdo label to unlabeled samples (copy the current dataset, do not change the original data)
+                self.assign_pseudo_label(unlabeled_dataset, config)
+                # 4. Train one epoch using function train_one_epoch_semi_supervised
+                self.train_one_epoch_semi_supervised(labeled_dataset, unlabeled_dataset, config)
+                # 5. Evaluate the auroc of the model
+                predictions, labels, total_loss = self.validate(validation_dataset, config)
+                metrics = self.cal_metrics(predictions, labels, total_loss)
+                if metrics['auroc'] > best['auroc']:
+                    best = metrics
+                # 6. Save the best model
+                
+        return best
+    
+    def assign_pseudo_label(self, unlabeled_dataset, config):
+        # TODO: refresh every epoch or every active learning round?
+        outputs_list = self.get_model_output(unlabeled_dataset, config.align_threshold, config.uncertainty_type)
+        
+        alignment_score = calculate_alignment_score(unlabeled_dataset, outputs_list)
+        # TODO: assign pseudo label to the unlabeled dataset according to alignment_score
+    
+    def train_one_epoch_semi_supervised(self, labeled_dataset, unlabeled_dataset, config):
+        print(f'The labeled dataset has {len(labeled_dataset)} samples')
+        print(f'The unlabeled dataset has {len(unlabeled_dataset)} samples')
+        
+        labeled_dataset = HiddenStateDataset(labeled_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
+        unlabeled_dataset = HiddenStateDataset(unlabeled_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
+        
+        labeled_loader = DataLoader(labeled_dataset, batch_size=config.batch_size, shuffle=True)
+        unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=config.batch_size, shuffle=True)
+        
+        labeled_iter = iter(labeled_loader)
+        unlabeled_iter = iter(unlabeled_loader)
+        
+        total_loss = 0.0
+        total_supervised_loss = 0.0
+        total_unsupervised_loss = 0.0
+        
+        l = max(len(unlabeled_loader), len(labeled_loader))
+        for batch_idx in range(l):
+            try:
+                labeled_data = next(labeled_iter)
+            except StopIteration:
+                labeled_iter = iter(labeled_loader)
+                labeled_data = next(labeled_iter)
+            
+            try:
+                unlabeled_data = next(unlabeled_iter)
+            except StopIteration:
+                unlabeled_iter = iter(unlabeled_loader)
+                unlabeled_data = next(unlabeled_iter)
+            
+            # Labeled data
+            sample_id, labeled_hs, labeled_labels, ue = labeled_data
+            labeled_hs, labeled_labels = labeled_hs.cuda().float(), labeled_labels.cuda().float()
+            
+            # Unlabeled data
+            sample_id, unlabeled_hs, _, ue = unlabeled_data
+            unlabeled_hs = unlabeled_hs.cuda().float()
+            
+            # Weak augmentation for unlabeled data
+            weak_augmented = weak_augmentation(unlabeled_hs)
+            
+            # Forward pass for weakly augmented unlabeled data
+            with torch.no_grad():
+                weak_logits = self.model(weak_augmented).reshape(-1)
+                weak_probs = torch.sigmoid(weak_logits)
+                pseudo_labels = (weak_probs > config.CONFIDENCE_THRESHOLD).float()
+                # TODO: maybe should delete this? 
+                pseudo_labels[weak_probs < (1 - config.CONFIDENCE_THRESHOLD)] = 0
+
+                mask = ((weak_probs > config.CONFIDENCE_THRESHOLD) | (weak_probs < (1 - config.CONFIDENCE_THRESHOLD))).float()
+                # pseudo_labels = (weak_probs > CONFIDENCE_THRESHOLD).float()
+                # mask = (weak_probs > CONFIDENCE_THRESHOLD).float()
+
+            # data_consistency, data_inconsistency, label_consistency, label_inconsistency = strong_augmentation_llm(input_text, output_text, pseudo_labels, mask)
+            strong_augmented = strong_augmentation(unlabeled_hs)
+            
+            labeled_logits =self.model(labeled_hs).reshape(-1)
+            strong_logits = self.model(strong_augmented).reshape(-1)
+            
+            supervised_loss = self.criterion(labeled_logits, labeled_labels)
+            
+            unsupervised_loss = (self.criterion(strong_logits, pseudo_labels) * mask).mean()
+            
+            # Total loss
+            loss = supervised_loss + config.LAMBDA_U * unsupervised_loss
+            
+            # Backward pass and optimization
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+        
+    def activa_learning_update(self, labeled_dataset, unlabeled_dataset, config):
+        outputs_list = self.get_model_output(unlabeled_dataset, config.align_threshold, config.uncertainty_type)
+        alignment_score = calculate_alignment_score(unlabeled_dataset, outputs_list)
+        # TODO: assign True label to the unlabeled dataset according to alignment_score
+    
+    def get_model_output(self, dataset, threshold, uncertainty_type):
+        dataset = HiddenStateDataset(dataset, threshold=threshold, uncertainty_type=uncertainty_type)
+        data_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+        outputs_list = []
+        with torch.no_grad():
+            for sample_id, hs, labels, ue in data_loader:
+                hs = hs.cuda().float()
+                outputs = self.model(hs).reshape(-1)
+                outputs_list.append(torch.sigmoid(outputs).cpu().item())
+        return outputs_list
+    
     def train_one_epoch(self, train_loader):
         self.model.train()
         total_loss = 0
@@ -49,9 +165,6 @@ class Trainer:
             total_loss += loss.item()
             
         return total_loss / len(train_loader)
-        
-    def train_semi_supervised(self, labeled_dataset, unlabeled_dataset, validation_dataset, config):
-        pass
         
     def validate(self, validation_dataset, config):
         validation_dataset = HiddenStateDataset(validation_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
