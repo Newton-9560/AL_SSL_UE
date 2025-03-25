@@ -12,7 +12,7 @@ for model in "${models[@]}"; do
     echo "Running experiment with model: $model and dataset: $dataset"
     
     # Run the Python experiment script with the required arguments
-    python find_best_layer.py \
+    python hallucination_detection.py \
       --model "$model" \
       --dataset "$dataset" \
 
@@ -20,16 +20,3 @@ for model in "${models[@]}"; do
 done
 
 echo "All experiments completed successfully."
-
-
-CUDA_VISIBLE_DEVICES=1 python generate_dataset.py \
-  --model llama3 \
-  --dataset truthful_qa
-
-CUDA_VISIBLE_DEVICES=2 python generate_dataset.py \
-  --model opt \
-  --dataset truthful_qa
-
-CUDA_VISIBLE_DEVICES=3 python generate_dataset.py \
-  --model qwen \
-  --dataset truthful_qa

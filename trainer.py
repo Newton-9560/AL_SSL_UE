@@ -3,9 +3,10 @@ import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
+import os
 
 from hidden_state.dataset import HiddenStateDataset
-from semi_supervised.utils import calculate_alignment_score, weak_augmentation, strong_augmentation
+from semi_supervised.utils import calculate_alignment_score, weak_augmentation, strong_augmentation, delete_items
 
 class Trainer:
     def __init__(self, model_name='mlp', dim=4096):
@@ -14,53 +15,73 @@ class Trainer:
         else:
             raise ValueError(f'Model {model_name} not supported')
         
-    def train_supervised(self, train_dataset, validation_dataset, config):
-        print(f'The train dataset has {len(train_dataset)} samples')
-        print(f'The validation dataset has {len(validation_dataset)} samples')
-        
+    def init_dataset(self, labeled_dataset, unlabeled_dataset, validation_dataset):
+        self.labeled_dataset = labeled_dataset
+        self.unlabeled_dataset = unlabeled_dataset
+        self.validation_dataset = validation_dataset
+    
+    '''
+    Training the model using active learning and semi-supervised learning
+    '''
+    def train_semi_supervised(self, config):
         self.set_optimizer(config)
         self.set_criterion()
-        
-        train_dataset = HiddenStateDataset(train_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
-        
-        train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-        
-        best = {'auroc': 0}
-        for epoch in range(config.epochs):
-            self.train_one_epoch(train_loader)
-            predictions, labels, total_loss = self.validate(validation_dataset, config)
-            metrics = self.cal_metrics(predictions, labels, total_loss)
-            if metrics['auroc'] > best['auroc']:
-                best = metrics
-                
-        return best
-    
-    def train_semi_supervised(self, labeled_dataset, unlabeled_dataset, validation_dataset, config):
         best = {'auroc': 0}
         # 1. Active learning round
-        for _ in range(config.rounds):
+        for _ in range(config.active_learning_rounds):
             # 2. Load the best checkpoint from previous step, or the optimizer
             # 3. Add new labeled samples according to ACTIVE LEARNING FUNCTION
-            for _ in range(config.epochs):
-                # 3. Assign Peusdo label to unlabeled samples (copy the current dataset, do not change the original data)
-                self.assign_pseudo_label(unlabeled_dataset, config)
-                # 4. Train one epoch using function train_one_epoch_semi_supervised
+            labeled_dataset = self.labeled_dataset.copy()
+            unlabeled_dataset = self.unlabeled_dataset.copy() 
+            for _ in range(config.epochs):  
+                # 3. Train one epoch using function train_one_epoch_semi_supervised
                 self.train_one_epoch_semi_supervised(labeled_dataset, unlabeled_dataset, config)
-                # 5. Evaluate the auroc of the model
-                predictions, labels, total_loss = self.validate(validation_dataset, config)
+                # 4. Evaluate the auroc of the model
+                predictions, labels, total_loss = self.validate(self.validation_dataset, config)
                 metrics = self.cal_metrics(predictions, labels, total_loss)
                 if metrics['auroc'] > best['auroc']:
+                    print(f'The best auroc is {metrics["auroc"]}')
                     best = metrics
+                # 5. Assign Peusdo label to unlabeled samples (copy the current dataset, do not change the original data)
+                labeled_dataset, unlabeled_dataset = self.assign_pseudo_label(labeled_dataset, unlabeled_dataset, config)
                 # 6. Save the best model
                 
         return best
     
-    def assign_pseudo_label(self, unlabeled_dataset, config):
+    def assign_pseudo_label(self, labeled_dataset, unlabeled_dataset, config):
         # TODO: refresh every epoch or every active learning round?
         outputs_list = self.get_model_output(unlabeled_dataset, config.align_threshold, config.uncertainty_type)
         
-        alignment_score = calculate_alignment_score(unlabeled_dataset, outputs_list)
-        # TODO: assign pseudo label to the unlabeled dataset according to alignment_score
+        alignment_result = calculate_alignment_score(unlabeled_dataset, outputs_list, config.uncertainty_type)
+        
+        selected_idx = [i['id'] for i in alignment_result if i['alignment_score'] <= config.pseudo_label_threshold]
+        
+        selected_data = [i for i in unlabeled_dataset if i['id'] in selected_idx]
+        
+        pseudo_labels_correctness = []
+        for d in selected_data:
+            unlabeled_dataset_index = [i['id'] for i in unlabeled_dataset].index(d['id'])
+            mlp_output = outputs_list[unlabeled_dataset_index]
+            
+            if mlp_output >= 0.9 or mlp_output <= 0.1:
+                pseudo_label = 1 if mlp_output >= 0.7 else 0
+                pseudo_labels_correctness.append(pseudo_label == (d['align'] >= config.align_threshold))
+                d['align'] = pseudo_label
+        
+        print(f'The accuracy of the pseudo labels is {np.mean(pseudo_labels_correctness)}')
+        # print(len(labeled_dataset), len(selected_data))
+        # print('*'*100)
+        labeled_dataset.extend(selected_data)
+        if len(unlabeled_dataset) > 32:
+            unlabeled_dataset = delete_items(unlabeled_dataset, selected_idx)
+        
+        return labeled_dataset, unlabeled_dataset
+            
+    
+    def activa_learning_update(self, config):
+        outputs_list = self.get_model_output(self.unlabeled_dataset, config.align_threshold, config.uncertainty_type)
+        alignment_score = calculate_alignment_score(self.unlabeled_dataset, outputs_list, config.uncertainty_type)
+        # TODO: assign True label to the unlabeled dataset according to alignment_score
     
     def train_one_epoch_semi_supervised(self, labeled_dataset, unlabeled_dataset, config):
         print(f'The labeled dataset has {len(labeled_dataset)} samples')
@@ -80,6 +101,7 @@ class Trainer:
         total_unsupervised_loss = 0.0
         
         l = max(len(unlabeled_loader), len(labeled_loader))
+        # l = len(labeled_loader)
         for batch_idx in range(l):
             try:
                 labeled_data = next(labeled_iter)
@@ -133,11 +155,6 @@ class Trainer:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-        
-    def activa_learning_update(self, labeled_dataset, unlabeled_dataset, config):
-        outputs_list = self.get_model_output(unlabeled_dataset, config.align_threshold, config.uncertainty_type)
-        alignment_score = calculate_alignment_score(unlabeled_dataset, outputs_list)
-        # TODO: assign True label to the unlabeled dataset according to alignment_score
     
     def get_model_output(self, dataset, threshold, uncertainty_type):
         dataset = HiddenStateDataset(dataset, threshold=threshold, uncertainty_type=uncertainty_type)
@@ -149,6 +166,33 @@ class Trainer:
                 outputs = self.model(hs).reshape(-1)
                 outputs_list.append(torch.sigmoid(outputs).cpu().item())
         return outputs_list
+    
+    
+    '''
+    Training the model on all the dataset
+    '''
+    def train_supervised(self, train_dataset, validation_dataset, config):
+        print(f'The train dataset has {len(train_dataset)} samples')
+        print(f'The validation dataset has {len(validation_dataset)} samples')
+        
+        self.set_optimizer(config)
+        self.set_criterion()
+        
+        train_dataset = HiddenStateDataset(train_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
+        
+        train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
+        
+        best = {'auroc': 0}
+        for epoch in range(config.epochs):
+            self.train_one_epoch(train_loader)
+            predictions, labels, total_loss = self.validate(validation_dataset, config)
+            metrics = self.cal_metrics(predictions, labels, total_loss)
+            if metrics['auroc'] > best['auroc']:
+                best = metrics
+                self.save_checkpoint(os.path.join('./checkpoints', config.model + '_' + config.dataset +'.pth'))
+                print('Save the best model to: ', os.path.join('./checkpoints', config.model + '_' + config.dataset +'.pth'))
+                
+        return best
     
     def train_one_epoch(self, train_loader):
         self.model.train()
@@ -204,8 +248,8 @@ class Trainer:
     def save_checkpoint(self, path):
         torch.save(self.model.state_dict(), path)
     
-    def load_checkpoint():
-        pass
+    def load_checkpoint(self, path):
+        self.model.load_state_dict(torch.load(path))
     
     # TODO: select the best threshold for the model
     def cal_metrics(self, predictions, labels, total_loss, threshold=0.5):
