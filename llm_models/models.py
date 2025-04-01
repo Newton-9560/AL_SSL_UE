@@ -5,7 +5,8 @@ model_path_dict = {
     'llama3': 'meta-llama/Meta-Llama-3-8B-Instruct',
     'opt': 'facebook/opt-6.7b',
     'qwen': 'Qwen/Qwen2.5-7B-Instruct-1M',
-    'llama2-13b': 'meta-llama/Llama-2-13b-chat-hf'
+    'llama2-13b': 'meta-llama/Llama-2-13b-chat-hf',
+    'mistral_7b': 'mistralai/Mistral-7B-Instruct-v0.3'
 }
 
 class LLMs:
@@ -34,6 +35,15 @@ class LLMs:
         elif 'qwen' in self.model_name:
             model = AutoModelForCausalLM.from_pretrained(model_path_dict[self.model_name], device_map=self.device, torch_dtype=torch.bfloat16)
             tokenizer = AutoTokenizer.from_pretrained(model_path_dict[self.model_name])
+            self.model = model
+            self.tokenizer = tokenizer
+        elif 'mistral' in self.model_name:
+            model = AutoModelForCausalLM.from_pretrained(model_path_dict[self.model_name], device_map=self.device, torch_dtype=torch.float16)
+            tokenizer = AutoTokenizer.from_pretrained(model_path_dict[self.model_name])
+            model.config.pad_token_id = 2
+            model.generation_config.pad_token_id = 2
+            tokenizer.pad_token = tokenizer.eos_token
+            print(next(model.parameters()).dtype)
             self.model = model
             self.tokenizer = tokenizer
             

@@ -64,5 +64,5 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    # single_layer_train()
-    evaluate_model()
+    single_layer_train()
+    # evaluate_model()

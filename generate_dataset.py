@@ -9,7 +9,7 @@ import uuid
 import torch
 from dataset.utils import fix_seed, cal_similarity
 from llm_models.models import LLMs, model_path_dict
-from dataset.dataset import TriviaQA, CoQA, SciQ, TruthfulQA, Tydiqa
+from dataset.dataset import TriviaQA, CoQA, SciQ, TruthfulQA, Tydiqa, AmbigQA, Squad, SimpleQA
 from llm_models.prompt import get_prompt_template
 from transformers import logging, DebertaForSequenceClassification, DebertaTokenizer
 import gc
@@ -19,11 +19,11 @@ import gc
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='llama3',
-                        choices=['llama3', 'opt', 'qwen', 'llama2-13b'],
+    parser.add_argument('--model', type=str, default='mistral_7b',
+                        choices=['llama3', 'opt', 'qwen', 'llama2-13b', 'mistral_7b'],
                         help='Model name to use for generation')
-    parser.add_argument('--dataset', type=str, default='tydiqa',
-                        choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa'],
+    parser.add_argument('--dataset', type=str, default='squad',
+                        choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa', 'ambig_qa', 'squad', 'simple_qa'],
                         help='Dataset to use')
     parser.add_argument('--split', type=str, default='train',
                         choices=['train', 'test'],
@@ -56,6 +56,14 @@ def load_dataset(model_path, args):
         dataset = TruthfulQA(batch_size=1, prompt_template=prompt_template)
     elif args.dataset == 'tydiqa':
         dataset = Tydiqa(batch_size=1, prompt_template=prompt_template)
+    elif args.dataset == 'ambig_qa':
+        dataset = AmbigQA(batch_size=1, prompt_template=prompt_template)
+    elif args.dataset == 'squad':
+        dataset = Squad(batch_size=1, prompt_template=prompt_template)
+    elif args.dataset == 'simple_qa':
+        dataset = SimpleQA(batch_size=1, prompt_template=prompt_template)
+    else:
+        raise ValueError(f"Dataset {args.dataset} not supported")
     return dataset
 
 def subsample_dataset(model_name, args):
@@ -107,12 +115,12 @@ def generate_result(dataset, ue_model, ue_methods):
         data_point['answer'] = output.generation_text
         print(f"Processing {i+1}/{len(dataset)}: ", output.generation_text)
         result.append(data_point)
-        # print(data_point['inputs'])
-        # print(data_point['answer'])
-        # print(a['correct_answer'])
-        # print('*'*100)
-        # if i > 10:
-        #     break
+        print(data_point['inputs'])
+        print(data_point['answer'])
+        print(a['correct_answer'])
+        print('*'*100)
+        if i > 10:
+            break
         gc.collect()
         torch.cuda.empty_cache()
     return result

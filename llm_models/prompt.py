@@ -29,6 +29,22 @@ PROMPT_TEMPLATES = {
             "Extract less than 5 words answer from the context for the question.\n"
             "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
         ),
+        "ambig_qa": (
+            "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+            "Answer the question concisely. (less than 5 words)\n"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
+        ),
+        "squad": (
+            "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+            "Context: {context}\n"
+            "Answer the question concisely. (less than 5 words)\n"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
+        ),
+        "simple_qa": (
+            "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+            "Answer the question concisely. (less than 5 words)\n"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
+        ),
     },
     "facebook/opt-6.7b": {
         "coqa": (
@@ -51,6 +67,10 @@ PROMPT_TEMPLATES = {
         "tydiqa": (
             "Context: {context}\n"
             "Answer the question concisely (less than 5 words).\n"
+            "Q: {question}\nA:"
+        ),
+        "ambig_qa": (
+            "Answer the question in five words or less.\n"
             "Q: {question}\nA:"
         ),
     },
@@ -81,27 +101,79 @@ PROMPT_TEMPLATES = {
             "Context: {context}\n"
             "Extract less than 5 words answer from the context for the question.\n"
             "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
-        )
+        ),
+        "ambig_qa": (
+            "<|im_start|>user\n"
+            "Answer the question in five words or less.\n"
+            "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
+        ),
+        "squad": (
+            "<|im_start|>user\n"
+            "Context: {context}\n"
+            "Answer the question in five words or less.\n"
+            "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
+        ),
+        "simple_qa": (
+            "<|im_start|>user\n"
+            "Answer the question in five words or less.\n"
+            "Q: {question}<|im_end|>\n<|im_start|>assistant\nA: "
+        ),
+        
     },
     "meta-llama/Llama-2-13b-chat-hf":{
-        "trivia_qa":(
-            "[INST] Answer the question in five words or less.\n"
-            "Q: {question}\nA: "
-        ),
-        "sciq":(
-            "[INST] Answer the question in five words or less.\n"
-            "Q: {question}\nA: "
-        ),
-        "coqa":(
-            "[INST] Answer the question concisely (less than 8 words).\n"
+        "coqa": (
             "Context: {story}\n"
-            "Q: {question}\nA: "
+            "Answer the question concisely (less than 8 words).\n"
+            "Q: {question}\nA:"
+        ),
+        "trivia_qa": (
+            "Answer the question in five words or less.\n"
+            "Q: {question}\nA:"
+        ),
+        "sciq": (
+            "Answer the question in five words or less.\n"
+            "Q: {question}\nA:"
         ),
         "truthful_qa":(
-            "[INST] Answer the question concisely.\n"
-            "Q: {question}\nA: "
-        )
-    }
+            "Answer the question concisely.\n"
+            "Q: {question}\nA:"
+        ),
+        "tydiqa": (
+            "Context: {context}\n"
+            "Answer the question concisely (less than 5 words).\n"
+            "Q: {question}\nA:"
+        ),
+        "ambig_qa": (
+            "Answer the question in five words or less.\n"
+            "Q: {question}\nA:"
+        ),
+    },
+    "mistralai/Mistral-7B-Instruct-v0.3": {
+        "coqa": (
+            "[INST] Context: {story} Answer the question in eight words or less: {question} [/INST]"
+        ),
+        "trivia_qa": (
+            "[INST] Answer the question in five words or less: {question} [/INST]"
+        ),
+        "sciq": (
+            "[INST] Answer the question in five words or less: {question} [/INST]"
+        ),
+        "truthful_qa":(
+            "[INST] Answer the question in five words or less: {question} [/INST]"
+        ),
+        "tydiqa": (
+            "[INST] Context: {context} Extract less than 5 words answer from the context for the question: {question} [/INST]"
+        ),
+        "ambig_qa": (
+            "[INST] Answer the question in five words or less: {question} [/INST]"
+        ),
+        "squad": (
+            "[INST] Context: {context} Answer the question in five words or less: {question} [/INST]"
+        ),
+        "simple_qa": (
+           "[INST] Answer the question in five words or less: {question} [/INST]"
+        ),
+    },
 }
 
 def get_prompt_template(model_name: str, dataset_name: str) -> str:

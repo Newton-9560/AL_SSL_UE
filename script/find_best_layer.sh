@@ -24,12 +24,12 @@ echo "All experiments completed successfully."
 
 CUDA_VISIBLE_DEVICES=1 python generate_dataset.py \
   --model llama3 \
-  --dataset truthful_qa
+  --dataset tydiqa
 
 CUDA_VISIBLE_DEVICES=2 python generate_dataset.py \
   --model opt \
-  --dataset truthful_qa
+  --dataset tydiqa
 
 CUDA_VISIBLE_DEVICES=3 python generate_dataset.py \
   --model qwen \
-  --dataset truthful_qa
+  --dataset tydiqa

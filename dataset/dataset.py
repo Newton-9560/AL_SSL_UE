@@ -97,9 +97,68 @@ class Tydiqa:
             prompt = self.prompt_template.format(context=data["context"], question=data["question"])
             answer = {'correct_answer': data['answers']["text"], 'incorrect_answers': None}
             yield prompt, answer
+            
+class AmbigQA:
+    def __init__(self, batch_size: int, prompt_template: str, test=False):
+        ambig_qa = load_dataset("ambig_qa")
+        self.dataset = ambig_qa["train"] if test is not True else ambig_qa["test"]
+        self.prompt_template = prompt_template
+        self.batch_size = batch_size
         
-        
+    def __len__(self):
+        return len(self.dataset)
     
+    def subsample(self, sample_idx: list[int]):
+        self.dataset = self.dataset.select(sample_idx)
+        
+    def __iter__(self):
+        for data in self.dataset:
+            prompt = self.prompt_template.format(question=data["question"])
+            answer = {'correct_answer': data["nq_answer"], 'incorrect_answers': None}
+            yield prompt, answer
+
+
+# TODO: test this dataset
+class SimpleQA:
+    def __init__(self, batch_size: int, prompt_template: str, test=False):
+        simple_qa = load_dataset("basicv8vc/SimpleQA")
+        self.dataset = simple_qa["test"]
+        self.prompt_template = prompt_template
+        self.batch_size = batch_size
+        
+    def __len__(self):
+        return len(self.dataset)
+    
+    def subsample(self, sample_idx: list[int]):
+        self.dataset = self.dataset.select(sample_idx)
+        
+        
+    def __iter__(self):
+        for data in self.dataset:
+            prompt = self.prompt_template.format(question=data["problem"])
+            answer = {'correct_answer': [data["answer"]], 'incorrect_answers': None}
+            yield prompt, answer
+            
+# TODO: Squad
+class Squad:
+    def __init__(self, batch_size: int, prompt_template: str, test=False):
+        squad = load_dataset("rajpurkar/squad")
+        self.dataset = squad["train"] if test is not True else squad["validation"]
+        self.prompt_template = prompt_template
+        self.batch_size = batch_size
+        
+    def __len__(self):
+        return len(self.dataset)
+    
+    def subsample(self, sample_idx: list[int]):
+        self.dataset = self.dataset.select(sample_idx)
+        
+    def __iter__(self):
+        for data in self.dataset:
+            prompt = self.prompt_template.format(context=data["context"], question=data["question"])
+            answer = {'correct_answer': data["answers"]['text'], 'incorrect_answers': None}
+            yield prompt, answer
+        
 if __name__ == "__main__":
     # from llm_models.prompt import get_prompt_template
     # import torch
@@ -139,18 +198,15 @@ if __name__ == "__main__":
     # dataset = load_dataset("truthful_qa",  "generation")
     # dataset = dataset['validation']
     # print(dataset[0])
-    
-    # dataset = load_dataset("sciq")
-    # dataset = dataset['validation']
-    # print(dataset[0])
-    
-    dataset = load_dataset("tydiqa", "secondary_task")
+
+    dataset = load_dataset("basicv8vc/SimpleQA")
+
     print(dataset)
-    dataset = dataset['validation']
-    i = 0
-    for data in dataset:
-        if 'english' in data['id']:
-            # print(data)
-            i += 1
+    print(dataset["test"][0])
+
     
-    print(i)
+
+
+
+    
+    

@@ -6,11 +6,11 @@ from llm_models.models import model_path_dict
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='llama3',
+    parser.add_argument('--model', type=str, default='opt',
                         choices=['llama3', 'opt', 'qwen', 'llama2-13b'],
                         help='Model name to use for generation')
-    parser.add_argument('--dataset', type=str, default='sciq',
-                        choices=['coqa', 'trivia_qa', 'sciq'],
+    parser.add_argument('--dataset', type=str, default='truthful_qa',
+                        choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa'],
                         help='Dataset to use')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
