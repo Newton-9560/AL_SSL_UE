@@ -21,15 +21,18 @@ done
 
 echo "All experiments completed successfully."
 
+CUDA_VISIBLE_DEVICES=0 python generate_dataset.py \
+  --model llama3 \
+  --dataset squad
 
 CUDA_VISIBLE_DEVICES=1 python generate_dataset.py \
   --model llama3 \
-  --dataset tydiqa
+  --dataset simple_qa
 
 CUDA_VISIBLE_DEVICES=2 python generate_dataset.py \
   --model opt \
-  --dataset tydiqa
+  --dataset ambig_qa
 
 CUDA_VISIBLE_DEVICES=3 python generate_dataset.py \
   --model qwen \
-  --dataset tydiqa
+  --dataset squad

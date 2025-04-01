@@ -19,16 +19,16 @@ import gc
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='mistral_7b',
+    parser.add_argument('--model', type=str, default='llama3',
                         choices=['llama3', 'opt', 'qwen', 'llama2-13b', 'mistral_7b'],
                         help='Model name to use for generation')
-    parser.add_argument('--dataset', type=str, default='squad',
+    parser.add_argument('--dataset', type=str, default='simple_qa',
                         choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa', 'ambig_qa', 'squad', 'simple_qa'],
                         help='Dataset to use')
     parser.add_argument('--split', type=str, default='train',
                         choices=['train', 'test'],
                         help='Dataset split to use')
-    parser.add_argument('--num_samples', type=int, default=-1,
+    parser.add_argument('--num_samples', type=int, default=4000,
                         help='Number of samples to generate')
     parser.add_argument('--num_splits', type=int, default=1,
                         help='Number of splits to divide the dataset into')
