@@ -1,5 +1,6 @@
 from lm_polygraph.utils.dataset import Dataset
 from datasets import load_dataset
+import pandas as pd
 
 class TriviaQA:
     def __init__(self, batch_size: int, prompt_template: str, test=False):
@@ -118,7 +119,6 @@ class AmbigQA:
             yield prompt, answer
 
 
-# TODO: test this dataset
 class SimpleQA:
     def __init__(self, batch_size: int, prompt_template: str, test=False):
         simple_qa = load_dataset("basicv8vc/SimpleQA")
@@ -139,7 +139,6 @@ class SimpleQA:
             answer = {'correct_answer': [data["answer"]], 'incorrect_answers': None}
             yield prompt, answer
             
-# TODO: Squad
 class Squad:
     def __init__(self, batch_size: int, prompt_template: str, test=False):
         squad = load_dataset("rajpurkar/squad")
@@ -158,6 +157,27 @@ class Squad:
             prompt = self.prompt_template.format(context=data["context"], question=data["question"])
             answer = {'correct_answer': data["answers"]['text'], 'incorrect_answers': None}
             yield prompt, answer
+            
+class Cactus:
+    def __init__(self, batch_size: int, prompt_template: str, file_path: str='/home/hanwenli/work/2025/AL_SSL/dataset/cactus/SingleStepQuestionList_Combined.csv'):
+        self.dataset = pd.read_csv(file_path)
+        self.prompt_template = prompt_template
+        self.batch_size = batch_size
+        
+    def __len__(self):
+        return len(self.dataset)
+    
+    def subsample(self, sample_idx: list[int]):
+        self.dataset = self.dataset.iloc[sample_idx]
+        
+    def __iter__(self):
+        for data in self.dataset:
+            prompt = self.prompt_template.format(question=data["Question"])
+            answer = {'correct_answer': data["Answer"], 'incorrect_answers': None}
+            yield prompt, answer
+        
+        
+        
         
 if __name__ == "__main__":
     # from llm_models.prompt import get_prompt_template

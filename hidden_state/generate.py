@@ -14,7 +14,7 @@ def generate_hidden_state(inp_text, llm, layer_id):
 
 def generate_dataset(llm, dataset, layer_id, save=False):
     file_name = f'{llm.model_name}_{dataset}_layer_{layer_id}'
-    file_path = os.path.join('./cache', f'{file_name}.pkl')
+    file_path = os.path.join('/home/hanwenli/work/2025/AL_SSL/cache', f'{file_name}.pkl')
     if os.path.exists(file_path):
         with open(file_path, 'rb') as f:
             print(f'Dataset {file_name} loaded from {file_path}')

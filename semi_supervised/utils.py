@@ -1,25 +1,35 @@
 import torch
 import numpy as np
 
-def calculate_alignment_score(unlabeled_dataset, classifier_output, uncertainty_type='sar'):
-    # classifier_output_bce = binary_cross_entropy(classifier_output)
-    
-    # uncertainty_score = [-d[uncertainty_type] for d in unlabeled_dataset]
-    # uncertainty_score = normalize_data(uncertainty_score)
-    # uncertainty_score_bce = binary_cross_entropy(uncertainty_score)
-    # alignment_score = uncertainty_score_bce + classifier_output_bce
-    # alighment_result = [{'id': d['id'], 'alignment_score': alignment_score[i], 'uncertainty_score': uncertainty_score[i], 
-    #                      'uncertainty_score_bce': uncertainty_score_bce[i], 'classifier_output_bce': classifier_output_bce[i],
-    #                      'classifier_output': classifier_output[i]} for i, d in enumerate(unlabeled_dataset)]
-    # return alighment_result
+def calculate_alignment_score(unlabeled_dataset, classifier_output, uncertainty_type='sar', type='ranking'):
+    #! preprocess the uncertainty score
     uncertainty_score = [-d[uncertainty_type] for d in unlabeled_dataset]
     uncertainty_score = normalize_data(uncertainty_score)
     
-    alignment_score_multiply = [uncertainty_score[i] * classifier_output[i] for i in range(len(uncertainty_score))]
-    # alignment_score_multiply = [(uncertainty_score[i] + classifier_output[i])/2 for i in range(len(uncertainty_score))]
-    alignment_score_numtiply_bce = binary_cross_entropy(alignment_score_multiply)
+    #! binary cross entropy
+    if type == 'bce':
+        alignment_score_multiply = [uncertainty_score[i] * classifier_output[i] for i in range(len(uncertainty_score))]
+        alignment_score_numtiply_bce = binary_cross_entropy(alignment_score_multiply)
+        alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': alignment_score_numtiply_bce[i]} for i in range(len(unlabeled_dataset))]
     
-    alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': alignment_score_numtiply_bce[i]} for i in range(len(unlabeled_dataset))]
+    #! ranking difference
+    elif type == 'ranking':
+        sorted_ue_index = np.argsort(uncertainty_score).tolist()
+        alignment_score = [((classifier_output[i] >= 0.9 and sorted_ue_index.index(i) >= 0.9*len(sorted_ue_index)) or 
+                        (classifier_output[i] <= 0.2 and sorted_ue_index.index(i) <= 0.2*len(sorted_ue_index)))
+                        for i in range(len(uncertainty_score))]
+        alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': 0 if alignment_score[i] else 1} for i in range(len(unlabeled_dataset))]
+    elif type == 'entropy':
+        classifier_output_bce = binary_cross_entropy(classifier_output)
+        alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': classifier_output_bce[i]} for i in range(len(unlabeled_dataset))]
+    elif type == 'ranking_difference':
+        uncertainty_score = [d[uncertainty_type] for d in unlabeled_dataset]
+        sorted_ue_index = np.argsort(uncertainty_score)
+        sorted_classifier_output_index = np.argsort(classifier_output)
+        alignment_score = [abs(sorted_ue_index[i] - sorted_classifier_output_index[i]) for i in range(len(uncertainty_score))]
+        alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': alignment_score[i]} for i in range(len(unlabeled_dataset))]
+    else:
+        raise ValueError(f'Invalid type: {type}')
     return alignment_result
 
 

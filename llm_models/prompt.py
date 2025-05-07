@@ -1,7 +1,7 @@
 # prompt_config.py
 
 PROMPT_TEMPLATES = {
-    "meta-llama/Meta-Llama-3-8B-Instruct": {
+    "llama3": {
         "coqa": (
             "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
             "Context: {story}\n"
@@ -46,7 +46,7 @@ PROMPT_TEMPLATES = {
             "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\nA: "
         ),
     },
-    "facebook/opt-6.7b": {
+    "opt": {
         "coqa": (
             "Context: {story}\n"
             "Answer the question concisely (less than 8 words).\n"
@@ -74,7 +74,7 @@ PROMPT_TEMPLATES = {
             "Q: {question}\nA:"
         ),
     },
-    "Qwen/Qwen2.5-7B-Instruct-1M": {
+    "qwen": {
         "coqa": (
             "<|im_start|>user\n"
             "Context: {story}\n"
@@ -120,35 +120,7 @@ PROMPT_TEMPLATES = {
         ),
         
     },
-    "meta-llama/Llama-2-13b-chat-hf":{
-        "coqa": (
-            "Context: {story}\n"
-            "Answer the question concisely (less than 8 words).\n"
-            "Q: {question}\nA:"
-        ),
-        "trivia_qa": (
-            "Answer the question in five words or less.\n"
-            "Q: {question}\nA:"
-        ),
-        "sciq": (
-            "Answer the question in five words or less.\n"
-            "Q: {question}\nA:"
-        ),
-        "truthful_qa":(
-            "Answer the question concisely.\n"
-            "Q: {question}\nA:"
-        ),
-        "tydiqa": (
-            "Context: {context}\n"
-            "Answer the question concisely (less than 5 words).\n"
-            "Q: {question}\nA:"
-        ),
-        "ambig_qa": (
-            "Answer the question in five words or less.\n"
-            "Q: {question}\nA:"
-        ),
-    },
-    "mistralai/Mistral-7B-Instruct-v0.3": {
+    "mistral": {
         "coqa": (
             "[INST] Context: {story} Answer the question in eight words or less: {question} [/INST]"
         ),
@@ -174,6 +146,18 @@ PROMPT_TEMPLATES = {
            "[INST] Answer the question in five words or less: {question} [/INST]"
         ),
     },
+    "llama3.1": {
+        "trivia_qa": (
+            "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+            "Answer the question concisely. (less than 5 words)\n"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+        ),
+        "truthful_qa":(
+            "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n"
+            "Answer the question concisely. (less than 10 words)\n"
+            "Q: {question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+        )
+    }
 }
 
 def get_prompt_template(model_name: str, dataset_name: str) -> str:

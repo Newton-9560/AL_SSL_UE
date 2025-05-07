@@ -47,7 +47,7 @@ def evaluate_model():
 def main():
     config = parse_args()
     fix_seed(config.seed)
-    llm = LLMs(config.model)
+    llm = LLMs(config.model, config.model_size)
     results = []
     for layer in range(llm.num_layers):
         print(f"Training on layer {layer}")
@@ -56,13 +56,13 @@ def main():
         trainer = Trainer(config.model_name, dim=4096 if 'qwen' not in config.model else 3584)
         results.append(trainer.train_supervised(train_dataset, validation_dataset, config))
 
-    result_path = os.path.join('./results', file_name+'.pkl') 
+    result_path = os.path.join('./results', llm.model_name+'_'+config.dataset+'.pkl') 
     with open(result_path, 'wb') as f:
         pickle.dump(results, f)
         print(f"Results saved to {result_path}")
     print(results)
 
 if __name__ == "__main__":
-    # main()
-    single_layer_train()
+    main()
+    # single_layer_train()
     # evaluate_model()
