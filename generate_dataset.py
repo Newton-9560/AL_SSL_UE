@@ -19,18 +19,18 @@ logging.set_verbosity_error()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='llama3.1',
+    parser.add_argument('--model', type=str, default='qwen',
                         choices=['llama3', 'opt', 'qwen', 'mistral', 'llama3.1'],
                         help='Model name to use for generation')
-    parser.add_argument('--model_size', type=str, default='70',
+    parser.add_argument('--model_size', type=str, default='32',
                         help='Model size to use for generation')
-    parser.add_argument('--dataset', type=str, default='trivia_qa',
+    parser.add_argument('--dataset', type=str, default='truthful_qa',
                         choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa', 'ambig_qa', 'squad', 'simple_qa'],
                         help='Dataset to use')
     parser.add_argument('--split', type=str, default='train',
                         choices=['train', 'test'],
                         help='Dataset split to use')
-    parser.add_argument('--num_samples', type=int, default=4000,
+    parser.add_argument('--num_samples', type=int, default=400,
                         help='Number of samples to generate')
     parser.add_argument('--num_splits', type=int, default=1,
                         help='Number of splits to divide the dataset into')
@@ -105,7 +105,7 @@ def generate_result(dataset, ue_model, ue_methods):
     for i, (q, a) in enumerate(dataset):
         data_point = {}
         for method in ue_methods:
-            start_time = time.time()
+            # start_time = time.time()
             try:
                 output = estimate_uncertainty(ue_model, method, q)
                 data_point[method.__class__.__name__.lower()] = output.uncertainty
@@ -113,8 +113,8 @@ def generate_result(dataset, ue_model, ue_methods):
                 print(f"Error in {method.__class__.__name__}: {e}")
                 data_point[method.__class__.__name__.lower()] = None
                 
-            generation_time = time.time() - start_time
-            print(f"{method.__class__.__name__} time: {generation_time:.4f}s")
+            # generation_time = time.time() - start_time
+            # print(f"{method.__class__.__name__} time: {generation_time:.4f}s")
         align_scores = [cal_similarity(output.generation_text, target_text) for target_text in a['correct_answer']]
         data_point['align'] = max(align_scores)
         data_point['inputs'] = q
@@ -122,14 +122,16 @@ def generate_result(dataset, ue_model, ue_methods):
         data_point['answer'] = output.generation_text
         print(f"Processing {i+1}/{len(dataset)}: ", output.generation_text)
         result.append(data_point)
-        
-        # DEBUG
-        print(data_point['inputs'])
-        print(data_point['answer'])
-        print(a['correct_answer'])
-        print('*'*100)
-        if i > 10:
+        # print('len(result) is ', len(result))
+        if len(result) > 4000:
             break
+        # DEBUG
+        # print(data_point['inputs'])
+        # print(data_point['answer'])
+        # print(a['correct_answer'])
+        # print('*'*100)
+        # if i > 10:
+        #     break
         
         gc.collect()
         torch.cuda.empty_cache()

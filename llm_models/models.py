@@ -1,10 +1,10 @@
-from transformers import AutoModelForCausalLM, LlamaForCausalLM, AutoTokenizer, AutoConfig
+from transformers import AutoModelForCausalLM, LlamaForCausalLM, AutoTokenizer, AutoConfig, BitsAndBytesConfig
 import torch
 import gc
 model_path_dict = {
     'llama3': 'meta-llama/Meta-Llama-3-{size}B-Instruct',
     'opt': 'facebook/opt-{size}b',
-    'qwen': 'Qwen/Qwen2.5-{size}B-Instruct-1M',
+    'qwen': 'Qwen/Qwen2.5-{size}B-Instruct',
     'mistral': 'mistralai/Mistral-{size}B-Instruct-v0.3',
     'llama3.1': "meta-llama/Meta-Llama-3.1-{size}B-Instruct"
 }
@@ -13,22 +13,28 @@ def get_model_path(model_name: str, model_size: str):
     return model_path_dict[model_name].format(size=model_size)
 
 class LLMs:
-    def __init__(self, model_name: str, model_size: str, device='cuda'):
+    def __init__(self, model_name: str, model_size: str, device='cuda', load_model=True):
         self.model_path = get_model_path(model_name, model_size)
+        if 'Qwen' in self.model_path and '7B' in self.model_path:
+            self.model_path = self.model_path + '-1M'
         self.model_name = self.model_path.split('/')[-1]
         self.device = device
-        self.init_model()
+        self.load_model = load_model
+        if load_model:
+            self.init_model()
         
     def delete_model(self):
-        del self.model
-        del self.tokenizer
+        if self.load_model:
+            del self.model
+            del self.tokenizer
         gc.collect()
         torch.cuda.empty_cache()
         
     def init_model(self):
         print("Initializing model: ", self.model_path)
         if 'llama' in self.model_path:
-            model = LlamaForCausalLM.from_pretrained(self.model_path, device_map='auto', torch_dtype=torch.float16)
+            quantization_config = BitsAndBytesConfig(load_in_8bit=True) if '70B' in self.model_path else None
+            model = LlamaForCausalLM.from_pretrained(self.model_path, device_map='auto', torch_dtype=torch.float16, quantization_config=quantization_config)
             tokenizer = AutoTokenizer.from_pretrained(self.model_path)
             if 'llama' in self.model_path:
                 model.config.pad_token_id = 128001
@@ -44,7 +50,8 @@ class LLMs:
             self.model = model
             self.tokenizer = tokenizer
         elif 'Qwen' in self.model_path:
-            model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map=self.device, torch_dtype=torch.float16)
+            self.model_path = self.model_path + '-1M' if '7B' in self.model_path else self.model_path
+            model = AutoModelForCausalLM.from_pretrained(self.model_path, device_map='auto', torch_dtype=torch.float16)
             tokenizer = AutoTokenizer.from_pretrained(self.model_path)
             self.model = model
             self.tokenizer = tokenizer

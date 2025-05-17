@@ -59,7 +59,8 @@ class Trainer:
             for epoch in range(config.epochs):
                 
                 # 3. Train one epoch using function train_one_epoch_semi_supervised
-                self.train_one_epoch_semi_supervised(labeled_dataset, unlabeled_dataset, config)
+                if self.train_one_epoch_semi_supervised(labeled_dataset, unlabeled_dataset, config) == -1:
+                    return best, auroc_list
                 # 4. Evaluate the auroc of the model
                 predictions, labels, total_loss = self.validate(self.validation_dataset, config)
                 metrics = self.cal_metrics(predictions, labels, total_loss)
@@ -105,7 +106,7 @@ class Trainer:
                 mlp_output = outputs_list[index]
                 
                 # Assign pseudo label
-                pseudo_label = 1 if mlp_output >= 0.9 else 0
+                pseudo_label = 1 if mlp_output >= 0.5 else 0
                 
                 # Track correctness for evaluation
                 is_correct = pseudo_label == (data_item['align'] >= config.align_threshold)
@@ -142,18 +143,21 @@ class Trainer:
         ratio_label0 = 1 - ratio_label1
         
         # If we have more label1 than the desired ratio would allow:
-        if len(label1_candidates) / total_candidates > ratio_label1 and ratio_label0 > 0:
+        if len(label1_candidates) / total_candidates > ratio_label1 + 0.1 and ratio_label0 > 0:
             # We're limited by the number of label0 candidates
             num_label0 = len(label0_candidates)
             num_label1 = int(num_label0 * (ratio_label1 / ratio_label0))
-            num_label1 = min(num_label1, len(label1_candidates))
-            num_label1 = max(num_label1, 20) 
+            num_label1 = min(num_label1 + 20, len(label1_candidates) + 20)
+            # num_label1 = max(num_label1, 40) 
+            # print(f'The number of label1 size is greater than the desired ratio: {num_label1}')
         # If we have more label0 than the desired ratio would allow:
-        elif len(label0_candidates) / total_candidates > ratio_label0 and ratio_label1 > 0:
+        elif len(label0_candidates) / total_candidates > ratio_label0 + 0.1 and ratio_label1 > 0:
             # We're limited by the number of label1 candidates
             num_label1 = len(label1_candidates)
             num_label0 = int(num_label1 * (ratio_label0 / ratio_label1))
-            num_label0 = min(num_label0, len(label0_candidates))
+            num_label0 = min(num_label0 + 20, len(label0_candidates)+20)
+            # num_label0 = max(num_label0, 40) 
+            # print(f'The number of label0 size is greater than the desired ratio: {num_label0}')
         # If the current distribution is already within the desired ratio:
         else:
             num_label0 = len(label0_candidates)
@@ -192,12 +196,9 @@ class Trainer:
         # Update labeled dataset
         labeled_dataset.extend(selected_data)
         
-        # Filter unlabeled dataset if necessary
-        if len(unlabeled_dataset) > 32:
-            # Sort indices in descending order to avoid index shifting issues
-            indices_to_delete.sort(reverse=True)
-            for index in indices_to_delete:
-                unlabeled_dataset.pop(index)
+        indices_to_delete.sort(reverse=True)
+        for index in indices_to_delete:
+            unlabeled_dataset.pop(index)
         
         return labeled_dataset, unlabeled_dataset
                 
@@ -225,6 +226,8 @@ class Trainer:
         unlabeled_dataset = HiddenStateDataset(unlabeled_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
         
         labeled_loader = DataLoader(labeled_dataset, batch_size=config.batch_size, shuffle=True)
+        if len(unlabeled_dataset) == 0:
+            return -1
         unlabeled_loader = DataLoader(unlabeled_dataset, batch_size=config.batch_size, shuffle=True)
         
         labeled_iter = iter(labeled_loader)
@@ -289,6 +292,8 @@ class Trainer:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+            
+        return 1
     
     def get_model_output(self, dataset, threshold, uncertainty_type):
         dataset = HiddenStateDataset(dataset, threshold=threshold, uncertainty_type=uncertainty_type)
@@ -317,7 +322,7 @@ class Trainer:
         
         train_dataset = HiddenStateDataset(train_dataset, threshold=config.align_threshold, uncertainty_type=config.uncertainty_type)
         
-        train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
         
         best = {'auroc': 0}
         for epoch in range(config.epochs):

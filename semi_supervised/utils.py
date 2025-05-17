@@ -15,7 +15,7 @@ def calculate_alignment_score(unlabeled_dataset, classifier_output, uncertainty_
     #! ranking difference
     elif type == 'ranking':
         sorted_ue_index = np.argsort(uncertainty_score).tolist()
-        alignment_score = [((classifier_output[i] >= 0.9 and sorted_ue_index.index(i) >= 0.9*len(sorted_ue_index)) or 
+        alignment_score = [((classifier_output[i] >= 0.8 and sorted_ue_index.index(i) >= 0.8*len(sorted_ue_index)) or 
                         (classifier_output[i] <= 0.2 and sorted_ue_index.index(i) <= 0.2*len(sorted_ue_index)))
                         for i in range(len(uncertainty_score))]
         alignment_result = [{'id': unlabeled_dataset[i]['id'], 'alignment_score': 0 if alignment_score[i] else 1} for i in range(len(unlabeled_dataset))]

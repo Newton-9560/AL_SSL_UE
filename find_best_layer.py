@@ -12,7 +12,12 @@ from utils import parse_args, fix_seed
 best_layer_dict = {
     'llama3': 17,
     'opt': 21,
-    'qwen': 22
+    'qwen': 31,
+    'mistral': 18,
+}
+
+dim= {
+    
 }
 
 def single_layer_train():
@@ -53,7 +58,7 @@ def main():
         print(f"Training on layer {layer}")
         dataset, file_name = generate_dataset(llm, config.dataset, layer_id=layer, save=False)
         train_dataset, validation_dataset = split_dataset(dataset, int(config.split_portion*len(dataset)))
-        trainer = Trainer(config.model_name, dim=4096 if 'qwen' not in config.model else 3584)
+        trainer = Trainer(config.model_name, dim=5120)
         results.append(trainer.train_supervised(train_dataset, validation_dataset, config))
 
     result_path = os.path.join('./results', llm.model_name+'_'+config.dataset+'.pkl') 

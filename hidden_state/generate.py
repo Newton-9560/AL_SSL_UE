@@ -19,7 +19,8 @@ def generate_dataset(llm, dataset, layer_id, save=False):
         with open(file_path, 'rb') as f:
             print(f'Dataset {file_name} loaded from {file_path}')
             return pickle.load(f), file_name
-    generated_result = load_generated_result(llm.model_name, dataset)
+    generated_result = load_generated_result(llm.model_name, dataset)[:4000]
+    print("Generating dataset...")
     dataset = []
     for id in tqdm(range(len(generated_result))):
         result = generated_result[id]
@@ -35,6 +36,8 @@ def generate_dataset(llm, dataset, layer_id, save=False):
         with open(file_path, 'wb') as f:
             pickle.dump(dataset, f)
             print(f'Dataset {file_name} saved to {file_path}')
+        import sys
+        sys.exit()
     return dataset, file_name
     
 if __name__ == "__main__":

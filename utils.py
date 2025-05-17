@@ -9,13 +9,13 @@ import random
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate dataset with model outputs')
-    parser.add_argument('--model', type=str, default='llama3',
+    parser.add_argument('--model', type=str, default='mistral',
                         choices=['llama3', 'opt', 'qwen', 'mistral', 'llama3.1'],
                         help='Model name to use for generation')
-    parser.add_argument('--dataset', type=str, default='simple_qa',
+    parser.add_argument('--dataset', type=str, default='trivia_qa',
                         choices=['coqa', 'trivia_qa', 'sciq', 'truthful_qa', 'tydiqa', 'squad', 'simple_qa', 'ambig_qa'],
                         help='Dataset to use')
-    parser.add_argument('--seed', type=int, default=40,
+    parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
     parser.add_argument('--model_name', type=str, default='mlp',
                         help='Model name to use for training')
@@ -48,7 +48,7 @@ def parse_args():
                         help='Initial labeled size')
     parser.add_argument('--pseudo_label_threshold', type=float, default=0.1,
                         help='Align threshold')
-    parser.add_argument('--model_size', type=str, default='8',
+    parser.add_argument('--model_size', type=str, default='7',
                         help='Model size')
     
     args = parser.parse_args()
@@ -110,3 +110,18 @@ def sample_uniform_by_uncertainty(
     remaining = [d for d in data if id(d) not in selected_ids]
 
     return selected, remaining
+
+def format_delta_cell(value, delta, color="customcoral", up_arrow="\\uparrow", down_arrow="\\downarrow"):
+
+    if delta > 0:
+        arrow = up_arrow
+        color = "upcolor"
+    elif delta < 0:
+        arrow = down_arrow
+        delta = abs(delta)
+        color = "downcolor"
+    else:
+        return str(value)
+    
+    # Fixed version with properly escaped braces
+    return f"{value}{{\\textcolor{{{color}}}{{\\scriptsize{{${arrow}${delta}}}}}}}"
