@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--split', type=str, default='train',
                         choices=['train', 'test'],
                         help='Dataset split to use')
-    parser.add_argument('--num_samples', type=int, default=400,
+    parser.add_argument('--num_samples', type=int, default=-1,
                         help='Number of samples to generate')
     parser.add_argument('--num_splits', type=int, default=1,
                         help='Number of splits to divide the dataset into')
@@ -74,9 +74,9 @@ def subsample_dataset(model, dataset, split, num_samples, num_splits, serial_id=
     dataset = load_dataset(model, dataset, split)
     if num_samples > 0:
         sample_idx = np.random.choice(np.arange(0, len(dataset)), size=num_samples, replace=False)
-        print(sample_idx)
         split_size = len(sample_idx) // num_splits
         sample_idx = sample_idx[serial_id * split_size:(serial_id + 1) * split_size]
+        print(sample_idx)
         dataset.subsample(sample_idx)
     print("The length of the dataset is: ", len(dataset))
     return dataset
